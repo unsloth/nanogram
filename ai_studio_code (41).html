@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NanoGram App</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --surface-color: #121212;
+            --text-main: #ffffff;
+            --text-muted: #888888;
+            --accent-green: #00C805;
+            --btn-buy: #00C805;
+            --btn-sell: #2b2b2b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            height: 100dvh; /* For mobile browsers */
+            overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 450px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-color);
+            position: relative;
+            padding-bottom: 50px; /* Requested 50px padding at the bottom */
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #1f1f1f;
+            flex-shrink: 0;
+        }
+
+        .header img {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            margin-right: 12px;
+            object-fit: cover;
+            box-shadow: 0 4px 10px rgba(0, 200, 5, 0.2);
+        }
+
+        .header-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .user-counter {
+            font-size: 12px;
+            color: #ff4d4d;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 2px;
+        }
+
+        .live-dot {
+            width: 6px;
+            height: 6px;
+            background-color: #ff4d4d;
+            border-radius: 50%;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(1.5); opacity: 1; }
+        }
+
+        .ticker {
+            color: var(--text-muted);
+            font-size: 16px;
+            margin-left: auto;
+            font-weight: 600;
+            background: #1f1f1f;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        /* Price Display */
+        .price-section {
+            padding: 25px 20px 5px 20px;
+            flex-shrink: 0;
+        }
+
+        .current-price {
+            font-size: clamp(36px, 10vw, 54px); /* Responsive text size */
+            font-weight: 400;
+            letter-spacing: -1px;
+            margin-bottom: 5px;
+        }
+
+        .price-change {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--accent-green);
+        }
+
+        /* Chart */
+        .chart-container {
+            width: 100%;
+            flex-grow: 1; /* Graph takes up remaining space */
+            min-height: 150px;
+            position: relative;
+            margin-top: 10px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Portfolio Stats */
+        .portfolio {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            flex-shrink: 0;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #1f1f1f;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .stat-value.total {
+            color: var(--accent-green);
+            font-size: 18px;
+        }
+
+        /* Controls */
+        .controls {
+            padding: 0 20px 20px 20px;
+            display: flex;
+            gap: 15px;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 18px;
+            border-radius: 30px;
+            border: none;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.1s, filter 0.1s;
+        }
+
+        .btn:active {
+            transform: scale(0.94);
+            filter: brightness(1.2);
+        }
+
+        .btn-sell {
+            background-color: var(--btn-sell);
+            color: var(--text-main);
+        }
+
+        .btn-buy {
+            background-color: var(--btn-buy);
+            color: #000000;
+            box-shadow: 0 4px 15px rgba(0, 200, 5, 0.3);
+        }
+
+        /* Floater Animation */
+        .floater {
+            position: absolute;
+            color: var(--accent-green);
+            font-weight: bold;
+            font-size: 16px;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            z-index: 100;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.2); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQePDRLcs4Fj_551NUlxeO10HdGATBJI9pX7z4IM46dAw&s" alt="NanoGram Logo">
+        <div class="header-info">
+            <h1>NanoGram</h1>
+            <div class="user-counter">
+                <div class="live-dot"></div>
+                <span id="user-count">10.5K</span> Live Users
+            </div>
+        </div>
+        <span class="ticker">NANO</span>
+    </div>
+
+    <div class="price-section">
+        <div class="current-price" id="current-price">$10.00</div>
+        <div class="price-change" id="price-change">+$0.00 (0.00%)</div>
+    </div>
+
+    <div class="chart-container" id="chart-container">
+        <canvas id="chart"></canvas>
+    </div>
+
+    <div class="portfolio">
+        <div class="stat-row">
+            <span class="stat-label">Buying Power</span>
+            <span class="stat-value" id="cash">$1.0K</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Shares Owned</span>
+            <span class="stat-value" id="shares">0</span>
+        </div>
+        <div class="stat-row" style="border: none;">
+            <span class="stat-label">Total Portfolio Value</span>
+            <span class="stat-value total" id="total-value">$1.0K</span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-sell" id="btn-sell">Sell</button>
+        <button class="btn btn-buy" id="btn-buy">Buy</button>
+    </div>
+</div>
+
+<script>
+    // Game Variables
+    let price = 10.00;
+    const startPrice = 10.00;
+    let cash = 1000.00;
+    let shares = 0;
+    let users = 10500;
+    
+    const maxHistory = 60;
+    let history = Array(maxHistory).fill(price);
+
+    // DOM Elements
+    const elPrice = document.getElementById('current-price');
+    const elChange = document.getElementById('price-change');
+    const elCash = document.getElementById('cash');
+    const elShares = document.getElementById('shares');
+    const elTotal = document.getElementById('total-value');
+    const elUsers = document.getElementById('user-count');
+    
+    // Canvas Setup
+    const canvas = document.getElementById('chart');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('chart-container');
+
+    function resizeCanvas() {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Smart Formatter for K, M, B, T (Thousands, Millions, Billions, Trillions)
+    const compactFormatter = new Intl.NumberFormat('en-US', {
+        notation: "compact",
+        compactDisplay: "short",
+        maximumFractionDigits: 2
+    });
+
+    const currencyFormatter = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        notation: "compact",
+        compactDisplay: "short",
+        maximumFractionDigits: 2
+    });
+
+    // Web Audio API for synthetic SFX
+    let audioCtx;
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playSFX(type) {
+        if (!audioCtx) return;
+        
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        if (type === 'buy') {
+            // High pitched success chime
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime); 
+            osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        } else if (type === 'sell') {
+            // "Cha-Ching" style double note
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(1000, audioCtx.currentTime + 0.05);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+        }
+    }
+
+    // Main Loop
+    function updateMarket() {
+        // Exponential price gain
+        const surge = 1 + (Math.random() * 0.03 + 0.005);
+        price *= surge;
+
+        // Occasional massive leap
+        if (Math.random() > 0.92) {
+            price *= 1.25; 
+        }
+
+        // Exponential user gain
+        users += (users * (Math.random() * 0.02 + 0.001));
+
+        history.push(price);
+        if (history.length > maxHistory) {
+            history.shift();
+        }
+
+        updateUI();
+        drawChart();
+    }
+
+    function updateUI() {
+        elPrice.innerText = currencyFormatter.format(price);
+        
+        const change = price - startPrice;
+        const changePercent = ((change / startPrice) * 100);
+        
+        let pctStr = changePercent > 999999 ? 'MAX%' : compactFormatter.format(changePercent) + '%';
+        elChange.innerText = `+${currencyFormatter.format(change)} (+${pctStr})`;
+
+        elCash.innerText = currencyFormatter.format(cash);
+        elShares.innerText = compactFormatter.format(shares);
+        elUsers.innerText = compactFormatter.format(Math.floor(users));
+        
+        const totalValue = cash + (shares * price);
+        elTotal.innerText = currencyFormatter.format(totalValue);
+    }
+
+    function drawChart() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const minPrice = Math.min(...history) * 0.95;
+        const maxPrice = Math.max(...history) * 1.05;
+        const range = maxPrice - minPrice || 1;
+
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height);
+
+        for (let i = 0; i < history.length; i++) {
+            const x = (i / (maxHistory - 1)) * canvas.width;
+            const y = canvas.height - ((history[i] - minPrice) / range) * canvas.height;
+            
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+
+        // Draw Line
+        ctx.strokeStyle = '#00C805';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        // Add Glow
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = 'rgba(0, 200, 5, 0.6)';
+        ctx.stroke();
+        ctx.shadowBlur = 0; // reset
+
+        // Draw Fill Gradient
+        ctx.lineTo(canvas.width, canvas.height);
+        ctx.lineTo(0, canvas.height);
+        
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, 'rgba(0, 200, 5, 0.3)');
+        gradient.addColorStop(1, 'rgba(0, 200, 5, 0.0)');
+        
+        ctx.fillStyle = gradient;
+        ctx.fill();
+    }
+
+    // Actions
+    function createFloater(text, x, y) {
+        const floater = document.createElement('div');
+        floater.className = 'floater';
+        floater.innerText = text;
+        // Keep within bounds
+        const safeX = Math.min(Math.max(x, 20), window.innerWidth - 150);
+        floater.style.left = safeX + 'px';
+        floater.style.top = y + 'px';
+        document.body.appendChild(floater);
+        setTimeout(() => floater.remove(), 1000);
+    }
+
+    document.getElementById('btn-buy').addEventListener('click', (e) => {
+        initAudio();
+        playSFX('buy');
+        
+        // Dynamic buying: buy 10 initially, scale up as you get richer
+        let buyAmount = Math.max(10, Math.floor(shares * 0.1)); 
+        if (shares === 0) buyAmount = 10;
+        
+        shares += buyAmount;
+        cash -= (price * buyAmount); // Infinite margin approved!
+        updateUI();
+        
+        const rect = e.target.getBoundingClientRect();
+        createFloater(`+${compactFormatter.format(buyAmount)} Shares!`, rect.left + 20, rect.top - 20);
+    });
+
+    document.getElementById('btn-sell').addEventListener('click', (e) => {
+        initAudio();
+        playSFX('sell');
+        
+        const rect = e.target.getBoundingClientRect();
+
+        if (shares > 0) {
+            // Sell a chunk of shares
+            let amount = Math.max(1, Math.floor(shares * 0.5)); // Sell 50%
+            shares -= amount;
+            cash += (price * amount);
+            createFloater(`Sold ${compactFormatter.format(amount)}! Profit!`, rect.left + 10, rect.top - 20);
+        } else {
+            // Joke: If you have no shares to sell, the app just gifts you massive free money.
+            let gift = price * 100;
+            cash += gift;
+            createFloater(`Free ${currencyFormatter.format(gift)}!`, rect.left + 10, rect.top - 20);
+        }
+        updateUI();
+    });
+
+    // Run the market at hyper-speed
+    setInterval(updateMarket, 150); // Updates fast for that massive growth illusion
+
+</script>
+</body>
+</html>
